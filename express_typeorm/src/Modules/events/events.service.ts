@@ -1,13 +1,16 @@
-import { Repository } from 'typeorm';
+import { MoreThan, Raw, Repository } from 'typeorm';
 import { Event } from './entities/event.entity';
+import { Workshop } from './entities/workshop.entity';
 import App from "../../app";
 
 
 export class EventsService {
   private eventRepository: Repository<Event>;
+  private workShopRepository: Repository<Workshop>;
 
   constructor(app: App) {
     this.eventRepository = app.getDataSource().getRepository(Event);
+    this.workShopRepository = app.getDataSource().getRepository(Workshop);
   }
 
   async getWarmupEvents() {
@@ -92,7 +95,23 @@ export class EventsService {
      */
 
   async getEventsWithWorkshops() {
-    throw new Error('TODO task 1');
+    try {
+      const getAllEvents = await this.eventRepository.find();
+      const eventsWithWorkShops = [];
+      for(const eachEvent of getAllEvents){
+        const eventData = JSON.parse(JSON.stringify(eachEvent));
+        const getAllWorkShop = await this.workShopRepository.find({
+          where:{
+            eventId:eachEvent.id
+          }
+        });
+        eventData.workshops = getAllWorkShop;
+        eventsWithWorkShops.push(eventData);
+      }
+      return eventsWithWorkShops;
+    } catch (error) {
+      throw error;
+    }
   }
 
   /* TODO: complete getFutureEventWithWorkshops so that it returns events with workshops, that have not yet started
@@ -162,6 +181,33 @@ export class EventsService {
     ```
      */
   async getFutureEventWithWorkshops() {
-    throw new Error('TODO task 2');
+    try {
+      const getAllWorkShop = await this.workShopRepository.findBy({
+          start: Raw((alias) => `${alias} > datetime('now')`),
+      });
+
+      const eventArray = [];
+      const eventIds:any = {};
+
+      const getEventAndLineUpWorkShop = getAllWorkShop.map(eachWorkShop =>{
+        if(!eventIds[eachWorkShop.eventId])
+          eventIds[eachWorkShop.eventId] = [];
+
+        eventIds[eachWorkShop.eventId].push(eachWorkShop);
+      })
+
+      for(const eachEventId of Object.keys(eventIds)){
+        const event = await this.eventRepository.find({
+          where:{
+            id:Number(eachEventId)
+          }
+        });
+        eventArray.push({...event[0],workshops:eventIds[eachEventId]});
+      }
+      return eventArray
+    
+    } catch (error) {
+      throw error;
+    }
   }
 }
