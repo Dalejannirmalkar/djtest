@@ -1,4 +1,4 @@
-import { MoreThan, Raw, Repository } from 'typeorm';
+import { Raw, Repository } from 'typeorm';
 import { Event } from './entities/event.entity';
 import { Workshop } from './entities/workshop.entity';
 import App from "../../app";
